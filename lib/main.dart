@@ -41,36 +41,48 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late FirebaseMessaging messaging;
-  String? notificationText;
+  String? fcmToken;
+
   @override
   void initState() {
     super.initState();
     messaging = FirebaseMessaging.instance;
+
+    // Retrieve the FCM token and print it
+    messaging.getToken().then((token) {
+      print("FCM Token: $token"); // Print token to the console for verification
+      setState(() {
+        fcmToken = token;
+      });
+    });
+
+    // Subscribe to topic "messaging"
     messaging.subscribeToTopic("messaging");
-    messaging.getToken().then((value) {
-      print(value);
-    });
+
+    // Handle messages while the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
-      print("message recieved");
+      print("Message received");
       print(event.notification!.body);
-      print(event.data.values);
       showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Notification"),
-              content: Text(event.notification!.body!),
-              actions: [
-                TextButton(
-                  child: Text("Ok"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                )
-              ],
-            );
-          });
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Notification"),
+            content: Text(event.notification!.body!),
+            actions: [
+              TextButton(
+                child: Text("Ok"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          );
+        },
+      );
     });
+
+    // Handle message when the app is opened via a notification
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       print('Message clicked!');
     });
@@ -82,7 +94,11 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title!),
       ),
-      body: Center(child: Text("Messaging Tutorial")),
+      body: Center(
+        child: fcmToken != null 
+          ? Text("FCM Token: $fcmToken") // Display token on the app's screen
+          : CircularProgressIndicator(), // Show loading indicator while token is being fetched
+      ),
     );
   }
 }
